@@ -1003,7 +1003,13 @@ VIEWS.panel = function(){
   const ganRealAnio = sumM(vivas.filter(r=>realizada(r) && fechaReal(r).slice(0,4)===panelMes.slice(0,4) && mesDe(fechaReal(r))<=panelMes), monR, ganR);
   const enCurso = sumM(vivas.filter(r=>!realizada(r) && estadoVis(r)!=="Finalizada" && estadoVis(r)!=="Vencida"), monR, ganR);
   const finPend = vivas.filter(r=>estadoVis(r)==="Finalizada" && saldo(r)>0.5);
-  const enPoder = sumM(vivas.filter(r=>!realizada(r)), monR, r=>Math.max(0, cobrado(r)-pagadoProv(r)));
+  /* Plata de clientes que todavía tenés vos: lo cobrado de viajes no realizados menos TODO lo que
+     ya les pagaste a operadores. Si en una reserva adelantaste más de lo cobrado, ese adelanto
+     salió de la plata de otros clientes, así que también resta. */
+  const pendientes = vivas.filter(r=>!realizada(r));
+  const enPoder = sumM(pendientes, monR, r=>cobrado(r)-pagadoProv(r));
+  const conAdelanto = pendientes.filter(r=>pagadoProv(r)-cobrado(r) > 0.5);
+  const adelantos = sumM(conAdelanto, monR, r=>pagadoProv(r)-cobrado(r));
   const egrMes = sumM(DB.egresos.filter(e=>enMes(e.fecha)), e=>e.moneda, e=>e.monto);
   const resReal = subM(ganReal, egrMes);
   const paxMes = sum(R.filter(r=>r.estado!=="Cancelada" && enMes(r.salida)), paxCount);
@@ -1054,7 +1060,8 @@ VIEWS.panel = function(){
     ${k(fmtM(resReal),"Resultado real (realizada − egresos)",{sm:1,alert:negM(resReal)})}
     ${k(fmtM(ganRealAnio),"Realizada en el año (hasta "+MES3[Number(panelMes.slice(5))-1]+")",{sm:1})}
     ${k(fmtM(enCurso),"Ganancia en curso <span class='tiny'>(viajes por hacer)</span>",{sm:1})}
-    ${k(fmtM(enPoder),"Plata de clientes en tu poder <span class='tiny'>(todavía no es tuya)</span>",{sm:1})}
+    ${k(fmtM(enPoder),"Plata de clientes en tu poder <span class='tiny'>(cobrado menos lo ya pagado a operadores; todavía no es tuya)</span>"
+      + (conAdelanto.length ? `<div class="tiny" style="margin-top:4px;color:var(--terraD)">Incluye ${fmtM(adelantos," + ")} que adelantaste a operadores por encima de lo cobrado en ${conAdelanto.map(r=>`<a style="cursor:pointer" onclick="go('reserva','${r.id}')">${r.id}</a>`).join(", ")}.</div>` : ""),{sm:1})}
     ${finPend.length?k(finPend.length,"Viajes terminados con saldo sin cobrar",{alert:1,go:"go('avisos')"}):""}
   </div></div>
 
