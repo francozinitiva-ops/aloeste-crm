@@ -190,6 +190,34 @@ tfoot td{font-weight:650;background:var(--paper2);border-bottom:0}
 .k.alert .v{color:var(--terra)}
 .k.click{cursor:pointer}.k.click:hover .lb{color:var(--terraD);text-decoration:underline}
 .dgrid>.box{margin-top:0}
+/* ── plata del panel ── */
+.plata{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:6px 0 22px;align-items:start}
+.pc{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:16px 18px 10px;box-shadow:0 1px 2px rgba(40,30,15,.05)}
+.pc-h{display:flex;align-items:baseline;gap:8px}
+.pc-h h3{font-size:15.5px;margin:0}
+.pc-h .tag{margin-left:auto}
+.pc .q{font-size:12px;color:var(--ink3);margin:3px 0 10px}
+.pr{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:8px 0;border-top:1px dashed var(--line)}
+.pr .l{font-size:13.5px;min-width:0}
+.pr .l small{display:block;font-size:11.5px;color:var(--ink3);line-height:1.35;margin-top:1px}
+.pr .v{font-weight:650;text-align:right;white-space:nowrap;font-size:15px;line-height:1.3}
+.pr.big .v{font-size:20px;font-stretch:106%}
+.pr.big .l{font-weight:600}
+.pr .l small{font-weight:400}
+.pr .v .neg{color:var(--terra)}
+.pr.good .v .neg{color:var(--terra)}
+.pr.tot{border-top:2px solid var(--ink)}
+.pr.sub{padding:5px 0 5px 14px;border-top:0}
+.pr.sub .l{color:var(--ink2);font-size:12.5px}
+.pr.sub .v{font-size:13.5px;font-weight:600;color:var(--ink2)}
+.pr .op{display:inline-block;width:14px;color:var(--ink3);font-weight:700}
+.pr.alert .v{color:var(--terra)}
+.pr.good .v{color:#4C5530}
+.pr.click{cursor:pointer}.pr.click:hover .l{color:var(--terraD);text-decoration:underline}
+.pr.sep{margin-top:6px}
+.pc-alert{display:flex;gap:8px;align-items:center;font-size:12.5px;background:var(--terraS);color:var(--terraD);border-radius:5px;padding:6px 10px;margin:4px 0 6px;cursor:pointer}
+.pc-alert b{font-weight:700}
+@media (max-width:1100px){.plata{grid-template-columns:1fr}}
 .egk .k{border:0;padding:0}
 .dgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:20px}
 .bars{display:flex;align-items:flex-end;gap:6px;height:150px;padding-top:10px}
@@ -1011,6 +1039,15 @@ VIEWS.panel = function(){
   const conAdelanto = pendientes.filter(r=>pagadoProv(r)-cobrado(r) > 0.5);
   const adelantos = sumM(conAdelanto, monR, r=>pagadoProv(r)-cobrado(r));
   const egrMes = sumM(DB.egresos.filter(e=>enMes(e.fecha)), e=>e.moneda, e=>e.monto);
+  /* de la plata de clientes que tenés, cuánto es para operadores y cuánto es margen anticipado */
+  const paraOps = sumM(pendientes, monR, r=>Math.min(Math.max(0, cobrado(r)-pagadoProv(r)), deudaProv(r)));
+  const margenAnt = sumM(pendientes, monR, r=>Math.max(0, cobrado(r)-pagadoProv(r)-deudaProv(r)));
+  const monPago = p => (byId(DB.reservas, p.reservaId)||{}).moneda || "ARS";
+  const pagadoMes = sumM(DB.pagosProv.filter(p=>enMes(p.fecha)), monPago, p=>p.monto);
+  const flujoMes = subM(subM(cobradoMes, pagadoMes), egrMes);
+  const anio = panelMes.slice(0,4);
+  const egrAnio = sumM(DB.egresos.filter(e=>(e.fecha||"").slice(0,4)===anio && mesDe(e.fecha)<=panelMes), e=>e.moneda, e=>e.monto);
+  const resAnio = subM(ganRealAnio, egrAnio);
   const resReal = subM(ganReal, egrMes);
   const paxMes = sum(R.filter(r=>r.estado!=="Cancelada" && enMes(r.salida)), paxCount);
 
@@ -1045,25 +1082,50 @@ VIEWS.panel = function(){
     ${k(cnt("Cancelada"),"Canceladas",{go:"go('reservas','Cancelada')"})}
   </div></div>
 
-  <div class="kgroup"><div class="kl">Dinero<small>${fmes(panelMes)}</small></div><div class="krow">
-    ${k(fmtM(ventaMes),"Vendido en el mes",{sm:1})}
-    ${k(fmtM(ganMes),"Ganancia de lo vendido",{sm:1})}
-    ${k(fmtM(cobradoMes),"Cobrado en el mes",{sm:1,go:"go('cobros')"})}
-    ${k(fmtM(porCobrar),"Por cobrar a clientes",{sm:1,alert:posM(porCobrar)})}
-    ${k(fmtM(porPagar),"Por pagar a proveedores",{sm:1})}
-    ${k(urgentes().length,"Vencimientos atrasados o de hoy",{alert:urgentes().length>0,go:"go('avisos')"})}
-  </div></div>
+  ${(()=>{
+    const neg = m => { const ks = monsM(m); return ks.length ? ks.map(x=>"− "+money(m[x],x)).join("<br>") : money(0); };
+    const pos = m => { const ks = monsM(m); return ks.length ? ks.map(x=>"+ "+money(m[x],x)).join("<br>") : money(0); };
+    const res = m => { const ks = monsM(m); return ks.length ? ks.map(x=>m[x]<0?`<span class="neg">${money(m[x],x)}</span>`:money(m[x],x)).join("<br>") : money(0); };
+    const fila = (lab, val, o={}) => `<div class="pr ${o.cls||""} ${o.go?"click":""}" ${o.go?`onclick="${o.go}"`:""}>
+      <div class="l">${o.op?`<span class="op">${o.op}</span>`:""}${lab}${o.ayuda?`<small>${o.ayuda}</small>`:""}</div><div class="v">${val}</div></div>`;
+    const urg = urgentes().length;
+    return `<div class="plata">
 
-  <div class="kgroup"><div class="kl">Ganancia<small>${fmes(panelMes)}</small></div><div class="krow">
-    ${k(fmtM(ganReal),"Ganancia realizada <span class='tiny'>(viajes hechos y cobrados)</span>",{sm:1})}
-    ${k(fmtM(egrMes),"Egresos del mes",{sm:1,go:"go('egresos')"})}
-    ${k(fmtM(resReal),"Resultado real (realizada − egresos)",{sm:1,alert:negM(resReal)})}
-    ${k(fmtM(ganRealAnio),"Realizada en el año (hasta "+MES3[Number(panelMes.slice(5))-1]+")",{sm:1})}
-    ${k(fmtM(enCurso),"Ganancia en curso <span class='tiny'>(viajes por hacer)</span>",{sm:1})}
-    ${k(fmtM(enPoder),"Plata de clientes en tu poder <span class='tiny'>(cobrado menos lo ya pagado a operadores; todavía no es tuya)</span>"
-      + (conAdelanto.length ? `<div class="tiny" style="margin-top:4px;color:var(--terraD)">Incluye ${fmtM(adelantos," + ")} que adelantaste a operadores por encima de lo cobrado en ${conAdelanto.map(r=>`<a style="cursor:pointer" onclick="go('reserva','${r.id}')">${r.id}</a>`).join(", ")}.</div>` : ""),{sm:1})}
-    ${finPend.length?k(finPend.length,"Viajes terminados con saldo sin cobrar",{alert:1,go:"go('avisos')"}):""}
-  </div></div>
+    <section class="pc">
+      <div class="pc-h"><h3>Hoy</h3><span class="tag t-gray">foto del momento</span></div>
+      <div class="q">Cómo estás parado ahora. No depende del mes elegido.</div>
+      ${fila("Te deben los clientes", fmtM(porCobrar), {cls:posM(porCobrar)?"alert":"", ayuda:"Saldos de reservas que todavía no te pagaron."})}
+      ${fila("Les debés a operadores", fmtM(porPagar), {ayuda:"Costos de servicios que todavía no pagaste."})}
+      ${fila("Plata de clientes que tenés", fmtM(enPoder), {cls:"big sep", ayuda:"Lo cobrado de viajes que todavía no terminaron, menos lo que ya pagaste. Todavía no es tuya."})}
+      ${fila("Para pagar a operadores", fmtM(paraOps), {cls:"sub", op:"↳"})}
+      ${fila("Tu margen anticipado <span class='tiny'>(es tuyo cuando se haga el viaje)</span>", fmtM(margenAnt), {cls:"sub", op:"↳"})}
+      ${conAdelanto.length ? fila(`Adelantaste a operadores <span class='tiny'>(${conAdelanto.map(r=>`<a style="cursor:pointer" onclick="event.stopPropagation();go('reserva','${r.id}')">${r.id}</a>`).join(", ")})</span>`, neg(adelantos), {cls:"sub alert", op:"↳"}) : ""}
+      ${urg ? `<div class="pc-alert" onclick="go('avisos')">⚠ <span><b>${urg}</b> ${urg===1?"vencimiento atrasado o de hoy":"vencimientos atrasados o de hoy"}</span></div>` : ""}
+      ${finPend.length ? `<div class="pc-alert" onclick="go('avisos')">⚠ <span><b>${finPend.length}</b> ${finPend.length===1?"viaje terminado":"viajes terminados"} con saldo sin cobrar</span></div>` : ""}
+    </section>
+
+    <section class="pc">
+      <div class="pc-h"><h3>Movimiento del mes</h3><span class="tag t-sky">${fmes(panelMes)}</span></div>
+      <div class="q">Qué vendiste y cuánta plata entró y salió.</div>
+      ${fila("Vendiste", fmtM(ventaMes), {ayuda:"Reservas cargadas en el mes, por su precio total."})}
+      ${fila("con una ganancia de", fmtM(ganMes), {cls:"sub", op:"↳"})}
+      ${fila("Cobraste a clientes", pos(cobradoMes), {cls:"sep", go:"go('cobros')"})}
+      ${fila("Pagaste a operadores", neg(pagadoMes))}
+      ${fila("Gastos de la agencia", neg(egrMes), {go:"go('egresos')"})}
+      ${fila("Quedó en caja", res(flujoMes), {cls:"tot big", ayuda:"Entró menos salió. Incluye plata de clientes: no es ganancia."})}
+    </section>
+
+    <section class="pc">
+      <div class="pc-h"><h3>Cuánto ganaste</h3><span class="tag t-olive">${fmes(panelMes)}</span></div>
+      <div class="q">Solo cuenta lo ganado de verdad: viajes terminados y cobrados.</div>
+      ${fila("Ganancia de viajes terminados", fmtM(ganReal), {ayuda:"Margen de los viajes que terminaron en el mes y están cobrados completos."})}
+      ${fila("Gastos de la agencia", neg(egrMes), {go:"go('egresos')"})}
+      ${fila("Resultado del mes", res(resReal), {cls:"tot big "+(negM(resReal)?"":"good")})}
+      ${fila("Resultado del año <span class='tiny'>(ene–"+MES3[Number(panelMes.slice(5))-1]+")</span>", res(resAnio), {cls:"sep", ayuda:`Ganancia ${fmtM(ganRealAnio," + ")} − gastos ${fmtM(egrAnio," + ")}`})}
+      ${fila("Lo que viene", fmtM(enCurso), {ayuda:"Margen de viajes vendidos que todavía no se hicieron."})}
+    </section>
+    </div>`;
+  })()}
 
   <div class="kgroup"><div class="kl">Comercial<small>${fmes(panelMes)}</small></div><div class="krow">
     ${k(vendidasMes.length,"Reservas nuevas")}
