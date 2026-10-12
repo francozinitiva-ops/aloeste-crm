@@ -1035,12 +1035,15 @@ VIEWS.panel = function(){
      ya les pagaste a operadores. Si en una reserva adelantaste más de lo cobrado, ese adelanto
      salió de la plata de otros clientes, así que también resta. */
   const pendientes = vivas.filter(r=>!realizada(r));
-  const enPoder = sumM(pendientes, monR, r=>cobrado(r)-pagadoProv(r));
+  /* viajes ya realizados: lo que todavía les debés a operadores sigue siendo plata ajena que tenés */
+  const realizadasConDeuda = vivas.filter(r=>realizada(r) && deudaProv(r)>0.5);
+  const debeRealizadas = r => Math.min(Math.max(0, cobrado(r)-pagadoProv(r)), deudaProv(r));
+  const enPoder = subM(sumM(pendientes, monR, r=>cobrado(r)-pagadoProv(r)), Object.fromEntries(Object.entries(sumM(realizadasConDeuda, monR, debeRealizadas)).map(([k,v])=>[k,-v])));
   const conAdelanto = pendientes.filter(r=>pagadoProv(r)-cobrado(r) > 0.5);
   const adelantos = sumM(conAdelanto, monR, r=>pagadoProv(r)-cobrado(r));
   const egrMes = sumM(DB.egresos.filter(e=>enMes(e.fecha)), e=>e.moneda, e=>e.monto);
   /* de la plata de clientes que tenés, cuánto es para operadores y cuánto es margen anticipado */
-  const paraOps = sumM(pendientes, monR, r=>Math.min(Math.max(0, cobrado(r)-pagadoProv(r)), deudaProv(r)));
+  const paraOps = sumM(pendientes.concat(realizadasConDeuda), monR, r=>Math.min(Math.max(0, cobrado(r)-pagadoProv(r)), deudaProv(r)));
   const margenAnt = sumM(pendientes, monR, r=>Math.max(0, cobrado(r)-pagadoProv(r)-deudaProv(r)));
   const monPago = p => (byId(DB.reservas, p.reservaId)||{}).moneda || "ARS";
   const pagadoMes = sumM(DB.pagosProv.filter(p=>enMes(p.fecha)), monPago, p=>p.monto);
@@ -1096,7 +1099,7 @@ VIEWS.panel = function(){
       <div class="q">Cómo estás parado ahora. No depende del mes elegido.</div>
       ${fila("Te deben los clientes", fmtM(porCobrar), {cls:posM(porCobrar)?"alert":"", ayuda:"Saldos de reservas que todavía no te pagaron."})}
       ${fila("Les debés a operadores", fmtM(porPagar), {ayuda:"Costos de servicios que todavía no pagaste."})}
-      ${fila("Plata de clientes que tenés", fmtM(enPoder), {cls:"big sep", ayuda:"Lo cobrado de viajes que todavía no terminaron, menos lo que ya pagaste. Todavía no es tuya."})}
+      ${fila("Plata de clientes que tenés", fmtM(enPoder), {cls:"big sep", ayuda:"Lo cobrado de viajes que no terminaron (menos lo ya pagado), más lo que todavía debés de viajes terminados. Todavía no es tuya."})}
       ${fila("Para pagar a operadores", fmtM(paraOps), {cls:"sub", op:"↳"})}
       ${fila("Tu margen anticipado <span class='tiny'>(es tuyo cuando se haga el viaje)</span>", fmtM(margenAnt), {cls:"sub", op:"↳"})}
       ${conAdelanto.length ? fila(`Adelantaste a operadores <span class='tiny'>(${conAdelanto.map(r=>`<a style="cursor:pointer" onclick="event.stopPropagation();go('reserva','${r.id}')">${r.id}</a>`).join(", ")})</span>`, neg(adelantos), {cls:"sub alert", op:"↳"}) : ""}
