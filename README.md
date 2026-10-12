@@ -18,3 +18,7 @@ La clave que figura en `index.html` es la clave **pública** de Supabase, pensad
 insert into public.crm_usuarios (user_id, email, nombre)
 select id, email, 'Nombre' from auth.users where email = 'email@ejemplo.com';
 ```
+
+## Consultas de la web → leads del CRM
+
+`supabase_leads_web.sql` instala una regla en la base: cada consulta que entra por el formulario de la web (`public.leads`) crea un lead en el CRM con el siguiente número `LEA-xxxx`, canal «Web», etapa «Nuevo» y seguimiento para el día. Si la experiencia elegida nombra un destino del catálogo, queda asociado a ese destino. Si algo falla del lado del CRM, la consulta de la web se guarda igual.
