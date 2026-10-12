@@ -1401,7 +1401,7 @@ function opSelect(path, sel){
 }
 
 function nuevoServicio(tipo){
-  const s = {id:uid(), tipo, estado:"Solicitado", proveedorId:"", operadorId:"", localizador:"", costo:"", vtoPago:"", notas:""};
+  const s = {id:uid(), tipo, estado:"Confirmado", proveedorId:"", operadorId:"", localizador:"", costo:"", vtoPago:"", notas:""};
   if(tipo==="alojamiento") Object.assign(s,{checkin:ed.salida, checkout:ed.regreso, habitaciones:[{cant:1,tipo:"Doble",camas:"Matrimonial",regimen:"Desayuno"}]});
   if(tipo==="aereo") Object.assign(s,{aerolinea:"",ruta:"",ida:ed.salida,vuelta:ed.regreso,equipaje:"Carry-on"});
   if(tipo==="traslado") Object.assign(s,{tramo:"",fecha:ed.salida,modalidad:"Privado"});
@@ -2004,7 +2004,7 @@ VIEWS.paquetes = function(){
 /* Convierte un servicio de plantilla en un servicio de reserva con fechas reales */
 function svcDesdePlantilla(t, salida, noches){
   const D = n => salida ? addDays(salida, Math.max(1, n0(n)||1) - 1) : "";
-  const s = {id:uid(), tipo:t.tipo, estado:"Solicitado", proveedorId:t.proveedorId||"", operadorId:t.operadorId||"", localizador:"",
+  const s = {id:uid(), tipo:t.tipo, estado:"Confirmado", proveedorId:t.proveedorId||"", operadorId:t.operadorId||"", localizador:"",
     costo:t.costo, vtoPago: salida && t.pagoDias!=="" && t.pagoDias!=null ? addDays(salida, -n0(t.pagoDias)) : "", notas:t.notas||""};
   switch(t.tipo){
     case "alojamiento": { const ci = D(t.dia); Object.assign(s, {checkin:ci, checkout: ci ? addDays(ci, n0(t.noches)||1) : "", habitaciones:[Object.assign({cant:1}, t.hab)]}); break; }
