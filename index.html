@@ -1100,9 +1100,9 @@ VIEWS.panel = function(){
       ${fila("Te deben los clientes", fmtM(porCobrar), {cls:posM(porCobrar)?"alert":"", ayuda:"Saldos de reservas que todavía no te pagaron."})}
       ${fila("Les debés a operadores", fmtM(porPagar), {ayuda:"Costos de servicios que todavía no pagaste."})}
       ${fila("Plata de clientes que tenés", fmtM(enPoder), {cls:"big sep", ayuda:"Lo cobrado de viajes que no terminaron (menos lo ya pagado), más lo que todavía debés de viajes terminados. Todavía no es tuya."})}
-      ${fila("Para pagar a operadores", fmtM(paraOps), {cls:"sub", op:"↳"})}
-      ${fila("Tu margen anticipado <span class='tiny'>(es tuyo cuando se haga el viaje)</span>", fmtM(margenAnt), {cls:"sub", op:"↳"})}
-      ${conAdelanto.length ? fila(`Adelantaste a operadores <span class='tiny'>(${conAdelanto.map(r=>`<a style="cursor:pointer" onclick="event.stopPropagation();go('reserva','${r.id}')">${r.id}</a>`).join(", ")})</span>`, neg(adelantos), {cls:"sub alert", op:"↳"}) : ""}
+      ${fila("Para pagar a operadores", fmtM(paraOps), {cls:"sub", op:"–"})}
+      ${fila("Tu margen anticipado <span class='tiny'>(es tuyo cuando se haga el viaje)</span>", fmtM(margenAnt), {cls:"sub", op:"–"})}
+      ${conAdelanto.length ? fila(`Adelantaste a operadores <span class='tiny'>(${conAdelanto.map(r=>`<a style="cursor:pointer" onclick="event.stopPropagation();go('reserva','${r.id}')">${r.id}</a>`).join(", ")})</span>`, neg(adelantos), {cls:"sub alert", op:"–"}) : ""}
       ${urg ? `<div class="pc-alert" onclick="go('avisos')">⚠ <span><b>${urg}</b> ${urg===1?"vencimiento atrasado o de hoy":"vencimientos atrasados o de hoy"}</span></div>` : ""}
       ${finPend.length ? `<div class="pc-alert" onclick="go('avisos')">⚠ <span><b>${finPend.length}</b> ${finPend.length===1?"viaje terminado":"viajes terminados"} con saldo sin cobrar</span></div>` : ""}
     </section>
@@ -1111,7 +1111,7 @@ VIEWS.panel = function(){
       <div class="pc-h"><h3>Movimiento del mes</h3><span class="tag t-sky">${fmes(panelMes)}</span></div>
       <div class="q">Qué vendiste y cuánta plata entró y salió.</div>
       ${fila("Vendiste", fmtM(ventaMes), {ayuda:"Reservas cargadas en el mes, por su precio total."})}
-      ${fila("con una ganancia de", fmtM(ganMes), {cls:"sub", op:"↳"})}
+      ${fila("con una ganancia de", fmtM(ganMes), {cls:"sub", op:"–"})}
       ${fila("Cobraste a clientes", pos(cobradoMes), {cls:"sep", go:"go('cobros')"})}
       ${fila("Pagaste a operadores", neg(pagadoMes))}
       ${fila("Gastos de la agencia", neg(egrMes), {go:"go('egresos')"})}
