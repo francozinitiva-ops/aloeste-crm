@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Al Oeste · Gestión</title>
+<title>Ocre · Gestión</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -6 75 60'><rect x='-4' y='-6' width='75' height='60' rx='12' fill='%23EFE2C6'/><circle cx='16' cy='9' r='5.5' fill='%23B8542D'/><path d='M3 46 26 12 49 46Z' fill='%23B8542D'/><path d='M30 46 47 14 64 46Z' fill='%23B8542D'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -376,7 +376,7 @@ tfoot td{font-weight:650;background:var(--paper2);border-bottom:0}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
 </head>
 <body>
-<div class="topbar"><button class="btn sec sm" onclick="toggleSide()" aria-label="Abrir menú">☰</button><svg width="26" height="20" viewBox="0 0 66 48" aria-hidden="true"><circle cx="16" cy="9" r="5.5" fill="#C8623A"/><path d="M3 46 26 12 49 46Z" fill="#C8623A"/><path d="M30 46 47 14 64 46Z" fill="#C8623A"/></svg><b>AL OESTE</b></div>
+<div class="topbar"><button class="btn sec sm" onclick="toggleSide()" aria-label="Abrir menú">☰</button><svg width="26" height="20" viewBox="0 0 66 48" aria-hidden="true"><circle cx="16" cy="9" r="5.5" fill="#C8623A"/><path d="M3 46 26 12 49 46Z" fill="#C8623A"/><path d="M30 46 47 14 64 46Z" fill="#C8623A"/></svg><b id="topNombre">OCRE</b></div>
 <div class="app">
   <aside class="side" id="side"></aside>
   <main class="main" id="main"></main>
@@ -385,15 +385,14 @@ tfoot td{font-weight:650;background:var(--paper2);border-bottom:0}
 <div id="gate"></div>
 <div id="printArea"></div>
 <script>
-/* ═════════════ AL OESTE · Sistema de gestión (CRM) · v1 ═════════════
+/* ═════════════ OCRE · Sistema de gestión (CRM) · v1 ═════════════
    Archivo autónomo. Los datos se guardan en este navegador (localStorage).
    Bases: clientes · proveedores · destinos · leads · reservas · cobros · pagosProv
    ══════════════════════════════════════════════════════════════════ */
-const KEY = "aloeste.crm.v1";
 const clone = x => JSON.parse(JSON.stringify(x));
 
 const CFG_DEF = {
-  agencia:"Al Oeste", subtitulo:"Conexiones del territorio",
+  agencia:"Ocre", subtitulo:"",
   razonSocial:"", cuit:"", condicionIva:"Responsable inscripto", legajo:"",
   domicilio:"", telefono:"", email:"",
   tc:{USD:1200, BRL:210},
@@ -768,15 +767,18 @@ let vista = "panel", param = null;
 function go(k, p){ vista = k; param = p ?? null; $("side").classList.remove("open"); window.scrollTo(0,0); render(); }
 function toggleSide(){ $("side").classList.toggle("open"); }
 
-/* Isotipo Al Oeste: sol + dos cerros. */
+/* Isotipo Ocre: sol + dos cerros. */
 const ICONO = (w=44, color="var(--marca-terra)") => `<svg width="${w}" height="${Math.round(w*48/66)}" viewBox="0 0 66 48" aria-hidden="true"><circle cx="16" cy="9" r="5.5" fill="${color}"/><path d="M3 46 26 12 49 46Z" fill="${color}"/><path d="M30 46 47 14 64 46Z" fill="${color}"/></svg>`;
 const LOGO = ICONO(40);
 /* Isologo vertical (como la pieza de marca) y horizontal (para documentos). */
 const ISO_L1 = "Turismo", ISO_L2 = "San Juan, Argentina";
-const isoV = (w=58) => `<div class="iso">${ICONO(w)}<b>${esc((DB.cfg.agencia||"Al Oeste").toUpperCase())}</b><span class="t1">${ISO_L1.toUpperCase()}</span><span class="t2">${ISO_L2.toUpperCase()}</span></div>`;
-const isoH = (w=46) => `<div class="iso-h">${ICONO(w)}<div><b>${esc((DB.cfg.agencia||"Al Oeste").toUpperCase())}</b><span class="t1">${ISO_L1.toUpperCase()}</span><span class="t2">${ISO_L2.toUpperCase()}</span></div></div>`;
+const isoV = (w=58) => `<div class="iso">${ICONO(w)}<b>${esc((DB.cfg.agencia||"Ocre").toUpperCase())}</b><span class="t1">${ISO_L1.toUpperCase()}</span><span class="t2">${ISO_L2.toUpperCase()}</span></div>`;
+const isoH = (w=46) => `<div class="iso-h">${ICONO(w)}<div><b>${esc((DB.cfg.agencia||"Ocre").toUpperCase())}</b><span class="t1">${ISO_L1.toUpperCase()}</span><span class="t2">${ISO_L2.toUpperCase()}</span></div></div>`;
 
 function renderSide(){
+  const nombre = (DB.cfg.agencia||"Ocre").trim() || "Ocre";
+  document.title = nombre + " · Gestión";
+  const tn = $("topNombre"); if(tn) tn.textContent = nombre.toUpperCase();
   $("side").innerHTML = `
     <div class="iso-card">${isoV(60)}</div>
     <nav class="nav">${NAV.map(n=> n.sec ? `<div class="nav-sec">${n.sec}</div>` :
@@ -2177,12 +2179,12 @@ function exportarICS(){
   const now = new Date().toISOString().replace(/[-:]/g,"").slice(0,15)+"Z";
   const ev = L.map(a=>{
     const t = a.k==="cobro" ? `Cobrar saldo · ${a.quien} · ${money(a.monto,a.r.moneda)}` : `Pagar a ${a.quien} · ${money(a.monto,a.r.moneda)}`;
-    return ["BEGIN:VEVENT", `UID:${a.key}@aloeste-crm`, `DTSTAMP:${now}`, `DTSTART;VALUE=DATE:${d8(a.fecha)}`, `DTEND;VALUE=DATE:${d8(addDays(a.fecha,1))}`,
+    return ["BEGIN:VEVENT", `UID:${a.key}@ocre-crm`, `DTSTAMP:${now}`, `DTSTART;VALUE=DATE:${d8(a.fecha)}`, `DTEND;VALUE=DATE:${d8(addDays(a.fecha,1))}`,
       `SUMMARY:${icsEsc(t)}`, `DESCRIPTION:${icsEsc(`${a.r.id} · ${a.que}`)}`,
       "BEGIN:VALARM","ACTION:DISPLAY",`DESCRIPTION:${icsEsc(t)}`,`TRIGGER:-P${n0(DB.cfg.avisoDias)||7}D`,"END:VALARM",
       "BEGIN:VALARM","ACTION:DISPLAY",`DESCRIPTION:${icsEsc(t)}`,"TRIGGER:PT9H","END:VALARM","END:VEVENT"].join("\r\n");
   });
-  const ics = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Al Oeste//CRM//ES","CALSCALE:GREGORIAN",`X-WR-CALNAME:${icsEsc(DB.cfg.agencia+" · vencimientos")}`, ...ev, "END:VCALENDAR"].join("\r\n");
+  const ics = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Ocre//CRM//ES","CALSCALE:GREGORIAN",`X-WR-CALNAME:${icsEsc(DB.cfg.agencia+" · vencimientos")}`, ...ev, "END:VCALENDAR"].join("\r\n");
   descargar(`vencimientos_${today()}.ics`, ics, "text/calendar");
   toast(`${L.length} vencimientos exportados. Abrí el archivo para sumarlos a tu calendario.`);
 }
@@ -2668,7 +2670,7 @@ async function descargar(nombre, data, mime){
   setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 }
 function exportar(){
-  descargar(`aloeste_respaldo_${today()}.json`, JSON.stringify(DB,null,1), "application/json");
+  descargar(`ocre_respaldo_${today()}.json`, JSON.stringify(DB,null,1), "application/json");
 }
 function leerJSON(input, fn){
   const f = input.files[0]; if(!f) return; const rd = new FileReader();
