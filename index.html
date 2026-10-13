@@ -189,6 +189,10 @@ tfoot td{font-weight:650;background:var(--paper2);border-bottom:0}
 .k .lb{font-size:12.5px;color:var(--ink2)}
 .k.alert .v{color:var(--terra)}
 .k.click{cursor:pointer}.k.click:hover .lb{color:var(--terraD);text-decoration:underline}
+.krow.boxed{gap:10px}
+.krow.boxed .k{background:var(--paper);border:1px solid var(--line);border-radius:7px;padding:10px 14px;box-shadow:0 1px 2px rgba(40,30,15,.06)}
+.krow.boxed .k.click:hover{border-color:var(--terra)}
+.krow.boxed .k.alert{border-color:var(--terra)}
 .dgrid>.box{margin-top:0}
 /* ── plata del panel ── */
 .plata{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:6px 0 22px;align-items:start}
@@ -1081,7 +1085,7 @@ VIEWS.panel = function(){
   <div class="row" style="margin-bottom:6px"><span class="muted small">Mes a analizar</span>
     <input type="month" value="${panelMes}" onchange="if(this.value&&this.value.slice(0,4)>='2000'){panelMes=this.value;render()}" style="width:auto"></div>
 
-  <div class="kgroup"><div class="kl">Reservas<small>estado actual</small></div><div class="krow">
+  <div class="kgroup"><div class="kl">Reservas<small>estado actual</small></div><div class="krow boxed">
     ${k(act.length,"Activas",{go:"go('reservas','activas')"})}
     ${k(cnt("Pendiente"),"Pendientes de confirmar",{alert:cnt("Pendiente")>0,go:"go('reservas','Pendiente')"})}
     ${k(cnt("Confirmada"),"Confirmadas por viajar",{go:"go('reservas','Confirmada')"})}
@@ -1138,7 +1142,7 @@ VIEWS.panel = function(){
     </div>`;
   })()}
 
-  <div class="kgroup"><div class="kl">Comercial<small>${fmes(panelMes)}</small></div><div class="krow">
+  <div class="kgroup"><div class="kl">Comercial<small>${fmes(panelMes)}</small></div><div class="krow boxed">
     ${k(vendidasMes.length,"Reservas nuevas")}
     ${k(L.filter(l=>enMes(l.alta)).length,"Leads nuevos")}
     ${k(L.filter(leadAbierto).length,"Leads abiertos",{go:"go('leads')"})}
