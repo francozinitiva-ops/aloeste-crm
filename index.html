@@ -213,8 +213,10 @@ tfoot td{font-weight:650;background:var(--paper2);border-bottom:0}
 .pr .op{display:inline-block;width:14px;color:var(--ink3);font-weight:700}
 .pr.alert .v{color:var(--terra)}
 .pr.good .v{color:#4C5530}
-.pr .v .pos{color:#4C5530}
-.pr .v .cero{color:var(--ink3)}
+.pr .v .pos,.pr .v .negb{display:inline-block;color:#fff;padding:2px 10px;border-radius:6px;margin:2px 0}
+.pr .v .pos{background:#3E7B38}
+.pr .v .negb{background:var(--terra)}
+.pr .v .cero{color:var(--ink3);display:inline-block;padding:2px 10px}
 .pr.click{cursor:pointer}.pr.click:hover .l{color:var(--terraD);text-decoration:underline}
 .pr.sep{margin-top:6px}
 .pc-alert{display:flex;gap:8px;align-items:center;font-size:12.5px;background:var(--terraS);color:var(--terraD);border-radius:5px;padding:6px 10px;margin:4px 0 6px;cursor:pointer}
@@ -1093,7 +1095,7 @@ VIEWS.panel = function(){
     const pos = m => { const ks = monsM(m); return ks.length ? ks.map(x=>"+ "+money(m[x],x)).join("<br>") : money(0); };
     /* Resultado del mes: siempre pesos, y dólares (u otra moneda) si la agencia opera en ella; verde si ganó, terracota si perdió. */
     const monUsadas = MON_ORD.filter(k=>k==="ARS" || DB.reservas.some(r=>r.moneda===k) || DB.egresos.some(e=>e.moneda===k));
-    const resColor = m => monUsadas.map(k=>{ const v = m[k]||0; return `<span class="${v>0.5?"pos":v<-0.5?"neg":"cero"}">${money(v,k)}</span>`; }).join("<br>");
+    const resColor = m => monUsadas.map(k=>{ const v = m[k]||0; return `<span class="${v>0.5?"pos":v<-0.5?"negb":"cero"}">${money(v,k)}</span>`; }).join("<br>");
     const res = m => { const ks = monsM(m); return ks.length ? ks.map(x=>m[x]<0?`<span class="neg">${money(m[x],x)}</span>`:money(m[x],x)).join("<br>") : money(0); };
     const fila = (lab, val, o={}) => `<div class="pr ${o.cls||""} ${o.go?"click":""}" ${o.go?`onclick="${o.go}"`:""}>
       <div class="l">${o.op?`<span class="op">${o.op}</span>`:""}${lab}${o.ayuda?`<small>${o.ayuda}</small>`:""}</div><div class="v">${val}</div></div>`;
