@@ -783,6 +783,7 @@ const NAV = [
   {k:"paquetes", t:"Paquetes", i:"🗺️", c:()=>DB.paquetes.filter(p=>p.activo!=="No").length},
   {k:"avisos", t:"Avisos", i:"🔔", c:()=>avisos().filter(a=>["vencido","hoy","pronto"].includes(tramo(a))).length, hot:()=>urgentes().length>0},
   {k:"cobros", t:"Cobros y recibos", i:"💵"},
+  {k:"pagos", t:"Pagos a operadores", i:"🧾", c:()=>avisos().filter(a=>a.k==="pago").length, hot:()=>avisos().some(a=>a.k==="pago" && ["vencido","hoy"].includes(tramo(a)))},
   {k:"egresos", t:"Egresos", i:"💸"},
   {sec:"Bases"},
   {k:"clientes", t:"Clientes", i:"👥", c:()=>DB.clientes.length},
@@ -2449,6 +2450,63 @@ function guardarPagoProv(resId, svcId){
   save(); closeModal(); render(); toast("Pago al proveedor registrado.");
 }
 function borrarPagoProv(id){ if(!confirm("¿Borrar este pago al proveedor?")) return; DB.pagosProv = DB.pagosProv.filter(p=>p.id!==id); save(); render(); }
+
+/* ═════════════ VISTA: PAGOS A OPERADORES ═════════════ */
+let pgModo = "hechos", pgMes = mesDe(today()), pgMedio = "", pgProv = "";
+const provDePago = p => p.proveedorId || "";
+VIEWS.pagos = function(){
+  const provSel = ids => `<select style="width:auto" onchange="pgProv=this.value;render()"><option value="">Todos los operadores</option>${
+    sortBy([...new Set(ids)].filter(Boolean), nombreProv).map(id=>`<option value="${id}" ${id===pgProv?"selected":""}>${esc(nombreProv(id))}</option>`).join("")}</select>`;
+  const pend = avisos().filter(a=>a.k==="pago");
+  const vencidos = pend.filter(a=>tramo(a)==="vencido"||tramo(a)==="hoy");
+  const tabs = `<div class="tabs"><button class="${pgModo==="hechos"?"on":""}" onclick="pgModo='hechos';render()">Pagos hechos</button>
+    <button class="${pgModo==="pendiente"?"on":""}" onclick="pgModo='pendiente';render()">Por pagar${pend.length?` (${pend.length})`:""}${vencidos.length?` <span class="tag t-wine">${vencidos.length} urgente${vencidos.length>1?"s":""}</span>`:""}</button></div>`;
+  const encabezado = head("Pagos a operadores", "Todo lo que les pagaste a operadores y proveedores, y lo que todavía les debés.",
+    pgModo==="hechos" ? `<button class="btn" onclick="pgModo='pendiente';render()">Registrar pago</button>` : "") + tabs;
+
+  if(pgModo==="pendiente"){
+    const L = pend.filter(a=>!pgProv || (a.s.operadorId||a.s.proveedorId)===pgProv)
+      .sort((a,b)=>(a.fecha||"9999").localeCompare(b.fecha||"9999") || a.r.id.localeCompare(b.r.id));
+    const tot = sumM(L, a=>a.r.moneda, a=>a.monto), venc = sumM(L.filter(a=>["vencido","hoy"].includes(tramo(a))), a=>a.r.moneda, a=>a.monto);
+    return encabezado +
+      `<div class="row" style="margin-bottom:14px">${provSel(pend.map(a=>a.s.operadorId||a.s.proveedorId))}</div>
+      ${L.length?`<div class="box" style="margin-bottom:16px"><div class="krow">
+        <div class="k"><div class="v sm">${fmtM(tot)}</div><div class="lb"><b>Le debés${pgProv?" a "+esc(nombreProv(pgProv)):" a operadores"}</b></div></div>
+        <div class="k"><div class="v sm" style="${posM(venc)?"color:var(--wine)":""}">${posM(venc)?fmtM(venc):"—"}</div><div class="lb">Vencido o vence hoy</div></div>
+        <div class="k"><div class="v sm">${L.length}</div><div class="lb">Servicios con saldo</div></div></div></div>
+      <div class="box flat"><div class="tw"><table><thead><tr><th>Vence</th><th>Operador</th><th>Reserva</th><th style="min-width:180px">Servicio</th><th class="num">Costo</th><th class="num">Pagado</th><th class="num">Saldo</th><th></th></tr></thead><tbody>
+        ${L.map(a=>{ const tr = tramo(a), rojo = tr==="vencido"||tr==="hoy";
+          return `<tr><td style="${rojo?"color:var(--wine);font-weight:600":""}">${a.fecha?fdate(a.fecha):`<span class="muted">Sin fecha</span>`}${tr==="hoy"?`<div class="tiny">hoy</div>`:""}</td>
+          <td>${esc(a.quien)}</td>
+          <td class="click" onclick="go('reserva','${a.r.id}')"><span class="id">${a.r.id}</span><div class="tiny">${esc(tituloRes(a.r))} · ${esc(nombreCliente(a.r.clienteId))}</div></td>
+          <td><span class="tiny">${SVC[a.s.tipo].t}${a.s.localizador?" · "+esc(a.s.localizador):""}</span><div class="small">${svcResumen(a.s)}</div></td>
+          <td class="num">${money(svcC(a.s,a.r),a.r.moneda)}</td><td class="num">${money(pagadoSvc(a.s),a.r.moneda)}</td>
+          <td class="num"><b>${money(a.monto,a.r.moneda)}</b></td>
+          <td><button class="btn ghost sm" onclick="formPagoProv('${a.r.id}','${a.s.id}')">Pagar</button></td></tr>`; }).join("")}
+      </tbody></table></div></div>`
+      :`<div class="box empty"><b>No le debés nada${pgProv?" a "+esc(nombreProv(pgProv)):" a ningún operador"}</b>Acá aparecen los servicios de reservas activas que todavía tienen saldo con el proveedor.</div>`}`;
+  }
+
+  const L = sortBy(DB.pagosProv.filter(p=>(!pgMes || mesDe(p.fecha)===pgMes) && (!pgMedio || p.medio===pgMedio) && (!pgProv || provDePago(p)===pgProv)), p=>p.fecha+p.id).reverse();
+  const mon = p => (byId(DB.reservas,p.reservaId)||{}).moneda || "ARS";
+  const porProv = contar(L, provDePago).map(([id])=>[id, sumM(L.filter(p=>provDePago(p)===id), mon, p=>p.monto)])
+    .sort((a,b)=>nombreProv(a[0]).localeCompare(nombreProv(b[0]),"es"));
+  return encabezado +
+    `<div class="row" style="margin-bottom:14px"><span class="small muted">Mes</span><input type="month" value="${pgMes}" style="width:auto" onchange="if(this.value&&this.value.slice(0,4)>='2000'){pgMes=this.value;render()}">
+      <button class="btn ghost sm" onclick="pgMes='';render()">Ver todos</button>
+      <select style="width:auto" onchange="pgMedio=this.value;render()">${opts(DB.cfg.medios, pgMedio, "Todos los medios")}</select>
+      ${provSel(DB.pagosProv.map(provDePago))}</div>
+    ${L.length?`<div class="box" style="margin-bottom:16px"><div class="krow">${porProv.slice(0,6).map(([id,v])=>`<div class="k"><div class="v sm">${fmtM(v)}</div><div class="lb">${esc(id?nombreProv(id):"Sin operador")}</div></div>`).join("")}
+      <div class="k"><div class="v sm">${fmtM(sumM(L,mon,p=>p.monto))}</div><div class="lb"><b>Total pagado ${pgMes?fmes(pgMes):""}</b></div></div></div></div>
+    <div class="box flat"><div class="tw"><table><thead><tr><th>N.º</th><th>Fecha</th><th>Operador</th><th>Reserva</th><th>Servicio</th><th>Medio</th><th>Comprobante o nota</th><th class="num">Importe</th><th></th></tr></thead><tbody>
+      ${L.map(p=>{ const r = byId(DB.reservas,p.reservaId)||{}, s = (r.servicios||[]).find(x=>x.id===p.servicioId);
+        return `<tr class="click" onclick="if(!event.target.closest('button'))go('reserva','${r.id||""}')">
+        <td class="id">${p.id}</td><td>${fdate(p.fecha)}</td><td>${esc(provDePago(p)?nombreProv(provDePago(p)):"—")}</td>
+        <td>${r.id||""}<div class="tiny">${esc(r.id?tituloRes(r):"Reserva borrada")}${r.clienteId?" · "+esc(nombreCliente(r.clienteId)):""}</div></td>
+        <td class="small">${s?SVC[s.tipo].t:"—"}</td><td>${esc(p.medio)}</td><td class="small">${esc(p.nota)}</td>
+        <td class="num">${money(p.monto,mon(p))}</td><td><button class="x" title="Borrar pago" onclick="borrarPagoProv('${p.id}')">×</button></td></tr>`; }).join("")}</tbody></table></div></div>`
+    :`<div class="box empty"><b>Sin pagos${pgMes?" en "+fmes(pgMes):""}${pgProv?" a "+esc(nombreProv(pgProv)):""}</b>Los pagos se registran desde cada reserva o desde la pestaña «Por pagar».</div>`}`;
+};
 
 /* ═════════════ CLIENTES ═════════════ */
 let cliQ = "", cliLoc = "";
